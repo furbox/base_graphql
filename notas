@@ -1,0 +1,234 @@
+=========================================================================
+1.-iniciar el proyecto configurarcion del archivo package.json          =
+=========================================================================
+
+npm init -y
+
+=========================================================================
+2.-creacion y configurarcion del archivo tsconfig.json                  =
+=========================================================================
+
+npx tsc --init --rootDir src --outDir build --lib dom,es6 --module commonjs --removeComments --target es6
+
+=========================================================================
+3.- instalar dependencias necesarias                                    =
+=========================================================================
+
+npm i express express-graphql graphql ncp http graphql-import-node compression cors typescript graphql-tools graphql-playground-middleware-express
+npm i @types/compression @types/express @types/cors @types/express-graphql @types/node @types/graphql -D
+
+=========================================================================
+4.-configurarcion de scripts de package.json                            =
+=========================================================================
+
+"start":"node build/server.js",
+"build":"tsc -p . && ncp src/schema build/schema",
+"start:dev":"npm run build:dev",
+"build:dev":"nodemon \"src/server.ts\" --exec \"ts-node\" src/server.ts -e ts,graphql"
+
+explicacion
+tsc -p . compila todo lo que dentro de la carpeta 
+ncp src/schema build/schema copia el contenido de la carpta schema de src a build
+
+=========================================================================
+5.-crear un archivo server.ts dentro de una carpeta llamda src          =
+=========================================================================
+agregar la linea console.log("hola mundo desde no");
+luego usar el comando npm run server:dev
+
+=========================================================================
+6.- configurar el archivo server.js                                     =
+=========================================================================
+
+//importamos las librerias express compression y cors
+import express from 'express';
+import compression from 'compression';
+import cors from 'cors';
+
+//creamos una instancia de express
+const app = express();
+
+//usamos el middleware cors
+app.use(cors());
+
+//usamos el middleware compression
+app.use(compression());
+
+//usamos el middleware para una ruta
+app.use('/', (req,res)=> {
+    //si alguien entra por esta ruta le respondemos lo siguiente
+    res.send('Bienvenido');
+});
+
+//creamos una constancia para el puerto
+const PORT = 9000;
+
+//usamos listen para escuchar todo lo que pase por el puerto configurado anteriormente
+app.listen(
+    {port:PORT},
+    ()=> console.log('Escuchamos en el puerto ' + PORT)
+);
+
+=========================================================================
+7.-Definir los types resolvers y schema                                 =
+=========================================================================
+
+//importamos las librerias express compression y cors
+import express from 'express';
+import compression from 'compression';
+import cors from 'cors';
+import { IResolvers, makeExecutableSchema } from 'graphql-tools';
+import { GraphQLSchema } from 'graphql';
+import { graphqlHTTP } from 'express-graphql';
+
+//creamos una instancia de express
+const app = express();
+
+//usamos el middleware cors
+app.use(cors());
+
+//usamos el middleware compression
+app.use(compression());
+
+//definicion de los types
+const typeDefs = `
+    type Query {
+        hola: String
+        holaConNombre(nombre: String!): String!
+        holaAlCursoGraphQL: String!
+    }
+`;
+
+//definimos los resolvers
+const resolvers: IResolvers = {
+    Query:{
+        hola(): String{
+            return 'Hola Mundo!';
+        },
+        holaConNombre(__:void, {nombre}): string {
+            return 'Hola mundo ' + nombre;
+        },
+        holaAlCursoGraphQL(): string{
+            return 'Hola mundo desde GraphQL';
+        }
+    }
+}
+
+//linea para ejecutar las types y resolvers
+const schema: GraphQLSchema = makeExecutableSchema({
+    typeDefs,
+    resolvers
+});
+
+//usamos el middleware para una ruta
+app.use('/', graphqlHTTP({
+    schema,
+    graphiql:true
+}));
+
+//creamos una constancia para el puerto
+const PORT = 9000;
+
+//usamos listen para escuchar todo lo que pase por el puerto configurado anteriormente
+app.listen(
+    {port:PORT},
+    ()=> console.log('Escuchamos en el puerto ' + PORT)
+);
+
+=========================================================================
+8.-Crear los Directorios para cada archivo dentro de src                =
+=========================================================================
+
+-resolvers
+--query.ts
+import { IResolvers } from 'graphql-tools';
+//definimos los resolvers
+const query: IResolvers = {
+    Query:{
+        hola(): String{
+            return 'Hola Mundo!';
+        },
+        holaConNombre(__:void, {nombre}): string {
+            return 'Hola mundo ' + nombre;
+        },
+        holaAlCursoGraphQL(): string{
+            return 'Hola mundo desde GraphQL';
+        }
+    }
+}
+
+export default query;
+--resolversMap.ts
+import { IResolvers } from 'graphql-tools';
+import query from './query';
+//definimos los resolvers
+const resolvers: IResolvers = {
+    ...query
+}
+
+export default resolvers;
+
+-schema
+--index.ts
+import { GraphQLSchema } from 'graphql';
+//libreria para que reconozca los ficheros *.graphql
+import 'graphql-import-node';
+import { makeExecutableSchema } from 'graphql-tools';
+import typeDefs from './schema.graphql';
+import resolvers from '../resolvers/resolversMap';
+//linea para ejecutar las types y resolvers
+const schema: GraphQLSchema = makeExecutableSchema({
+    typeDefs,
+    resolvers
+});
+
+export default schema;
+--schema.graphql
+type Query {
+  hola: String
+  holaConNombre(nombre: String!): String!
+  holaAlCursoGraphQL: String!
+}
+
+modificar el archivo server.ts
+//importamos las librerias express compression y cors
+import express from 'express';
+import compression from 'compression';
+import cors from 'cors';
+import { graphqlHTTP } from 'express-graphql';
+import schema from './schema/index';
+
+//creamos una instancia de express
+const app = express();
+
+//usamos el middleware cors
+app.use(cors());
+
+//usamos el middleware compression
+app.use(compression());
+
+//usamos el middleware para una ruta
+app.use('/', graphqlHTTP({
+    schema,
+    graphiql:true
+}));
+
+//creamos una constancia para el puerto
+const PORT = 9000;
+
+//usamos listen para escuchar todo lo que pase por el puerto configurado anteriormente
+app.listen(
+    {port:PORT},
+    ()=> console.log('Escuchamos en el puerto ' + PORT)
+);
+
+=========================================================================
+9.- Instalar ApolloServer                                               =
+=========================================================================
+
+desintalar express-graphql
+npm uninstall express-graphql
+instalar apollo-server-express
+npm i apollo-server-express
+
+modificar el archivo server.ts
